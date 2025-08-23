@@ -3,9 +3,10 @@ from feature_generator_4 import feature_gen
 import numpy as np
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
+from scipy.signal import savgol_filter
 
 class Strategy_1(Strategy):
-    def __init__(self, name = "Strategy_0", train_data_directory = "", test_data_directory = "", is_ml = True, sl = -100, day_sl = -500, tp = 10000000, framework = "sklearn"):
+    def __init__(self, name = "Strategy_0_updated", train_data_directory = "", test_data_directory = "", is_ml = True, sl = -100, day_sl = -500, tp = 10000000, framework = "sklearn"):
         super().__init__(name, train_data_directory, test_data_directory, is_ml, sl, day_sl, tp, framework)
 
 
@@ -16,6 +17,7 @@ class Strategy_1(Strategy):
     def generate_target_var(self, data: pd.DataFrame) -> pd.DataFrame:
         df = data.copy()
         df['target'] = 0
+        df["savgol_close"] = savgol_filter(df['close'], 11, 3)  # window size 11, polynomial order 3
         df['target'] = np.where(df['close'] > df['close'].shift(), 1, 0)
         df["target"] = df["target"].astype(int)
         return df[["target"]]

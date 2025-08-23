@@ -133,6 +133,7 @@ class Strategy():
         plt.ylabel("Portfolio Value")
         plt.grid(True)
         plt.tight_layout()
+        plt.savefig(f"results/test/{self.name}_portfolio_value.png")
         plt.show()
 
         self.test_result = sum(day_profits) / len(day_profits)
@@ -319,7 +320,7 @@ class Strategy():
             data.dropna(inplace=True, axis=0)
             data.reset_index(inplace=True, drop=True)
 
-            y = model.predict(data.loc[:, feature_columns], verbose=0)
+            y = model.predict(data.loc[:, feature_columns])
             if (self.framework == "sklearn"):
                 data['target'] = y
             elif (self.framework == "tf"):
@@ -412,10 +413,14 @@ class Strategy():
                 
         plt.figure(figsize=(8, 5))
         plt.hist(data, bins=25, color='blue', alpha=0.6, edgecolor='black')
+        # Add vertical line at self.test_result
+        plt.axvline(self.test_result, color='red', linestyle='dashed', linewidth=2, label=f'Test Result: {self.test_result}')
         plt.title("Histogram of Permuted Net Profits")
         plt.xlabel("Avg Profit Value")
         plt.ylabel("Frequency")
         plt.grid(True)
+        plt.legend()
+        plt.savefig(f"results/permutation_test/permutation_test_histogram_{self.name}.png")
         plt.show()
         count = sum(x <= self.test_result for x in net_profits)
         print("Test result is better then", count *100 / len(net_profits), "% of the permutations")
