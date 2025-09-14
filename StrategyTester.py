@@ -84,11 +84,12 @@ class Strategy():
             results = process_map(self.backtest, file_names, max_workers=workers, desc="Processing", chunksize=chunksize)
         elif(self.framework == "tf"):
             results = process_map(self.backtest, file_names, max_workers=workers, desc="Processing", chunksize=chunksize)
+        elif(self.framework == "nil" and not self.is_ml):
+            results = process_map(self.backtest, file_names, max_workers=workers, desc="Processing", chunksize=chunksize)
 
         # Unpack results from processes
         day_profits, day_trades, day_num_profit, day_num_loss = zip(*results)
         
-        # Convert to lists for consistency with original code
         day_profits = list(day_profits)
         day_trades = list(day_trades)
         day_num_profit = list(day_num_profit)
@@ -157,40 +158,39 @@ class Strategy():
     
     def backtest(self, datapath):
         try:
-            os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-            if(self.framework == "tf"):
-                gpus = tf.config.list_physical_devices('GPU')
-                if gpus:
-                    try:
-                        tf.config.experimental.set_memory_growth(gpus[0], True)
-                    except RuntimeError as e:
-                        print(e)
-                model = load_model(f'models/{self.name}_model.h5')
-            
-            if(self.framework == "sklearn"):
-                model = self.model
-
             data = pd.read_csv(f"{self.test_data_directory}/{datapath}")
             data.columns = data.columns.str.lower()
+            if self.is_ml:
+                os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+                if(self.framework == "tf"):
+                    gpus = tf.config.list_physical_devices('GPU')
+                    if gpus:
+                        try:
+                            tf.config.experimental.set_memory_growth(gpus[0], True)
+                        except RuntimeError as e:
+                            print(e)
+                    model = load_model(f'models/{self.name}_model.h5')
+                
+                if(self.framework == "sklearn"):
+                    model = self.model
 
-            features = self.generate_features(data)
-            feature_columns = features.columns.to_list()
-            data = pd.concat([data, features], axis=1)
+                features = self.generate_features(data)
+                feature_columns = features.columns.to_list()
+                data = pd.concat([data, features], axis=1)
 
-            data.replace([np.inf, -np.inf], 1e6, inplace=True)
-            data.dropna(inplace=True, axis=0)
-            data.reset_index(inplace=True, drop=True)
+                data.replace([np.inf, -np.inf], 1e6, inplace=True)
+                data.dropna(inplace=True, axis=0)
+                data.reset_index(inplace=True, drop=True)
 
-            
-            if (self.framework == "sklearn"):
-                y = model.predict(data.loc[:, feature_columns])
-                data['target'] = y
-            elif (self.framework == "tf"):
-                y = model.predict(data.loc[:, feature_columns], verbose=0)
-                if(y.shape[0] >= 2):
-                    data['target'] = np.argmax(y, axis=1)
-                else:
+                if (self.framework == "sklearn"):
+                    y = model.predict(data.loc[:, feature_columns])
                     data['target'] = y
+                elif (self.framework == "tf"):
+                    y = model.predict(data.loc[:, feature_columns], verbose=0)
+                    if(y.shape[0] >= 2):
+                        data['target'] = np.argmax(y, axis=1)
+                    else:
+                        data['target'] = y
 
             data["signal"] = self.generate_signals(data)
 
@@ -232,18 +232,19 @@ class Strategy():
         
     def _permutation_test_single(self, datapath, start_index=0):
         try:
-            os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-            if(self.framework == "tf"):
-                gpus = tf.config.list_physical_devices('GPU')
-                if gpus:
-                    try:
-                        tf.config.experimental.set_memory_growth(gpus[0], True)
-                    except RuntimeError as e:
-                        print(e)
-                model = load_model(f'models/{self.name}_model.h5')
-            
-            if(self.framework == "sklearn"):
-                model = self.model
+            if self.is_ml:
+                os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+                if(self.framework == "tf"):
+                    gpus = tf.config.list_physical_devices('GPU')
+                    if gpus:
+                        try:
+                            tf.config.experimental.set_memory_growth(gpus[0], True)
+                        except RuntimeError as e:
+                            print(e)
+                    model = load_model(f'models/{self.name}_model.h5')
+                
+                if(self.framework == "sklearn"):
+                    model = self.model
 
             data = pd.read_csv(f"{self.test_data_directory}/{datapath}")
             data.columns = data.columns.str.lower()
@@ -312,23 +313,24 @@ class Strategy():
             # Now proceed with the rest of the backtest on the permuted data
             data = perm_ohlc
 
-            features = self.generate_features(data)
-            feature_columns = features.columns.to_list()
-            data = pd.concat([data, features], axis=1)
+            if self.is_ml:
+                features = self.generate_features(data)
+                feature_columns = features.columns.to_list()
+                data = pd.concat([data, features], axis=1)
 
-            data.replace([np.inf, -np.inf], 1e6, inplace=True)
-            data.dropna(inplace=True, axis=0)
-            data.reset_index(inplace=True, drop=True)
+                data.replace([np.inf, -np.inf], 1e6, inplace=True)
+                data.dropna(inplace=True, axis=0)
+                data.reset_index(inplace=True, drop=True)
 
-            if (self.framework == "sklearn"):
-                y = model.predict(data.loc[:, feature_columns])
-                data['target'] = y
-            elif (self.framework == "tf"):
-                y = model.predict(data.loc[:, feature_columns], verbose=0)
-                if(y.shape[0] >= 2):
-                    data['target'] = np.argmax(y, axis=1)
-                else:
+                if (self.framework == "sklearn"):
+                    y = model.predict(data.loc[:, feature_columns])
                     data['target'] = y
+                elif (self.framework == "tf"):
+                    y = model.predict(data.loc[:, feature_columns], verbose=0)
+                    if(y.shape[0] >= 2):
+                        data['target'] = np.argmax(y, axis=1)
+                    else:
+                        data['target'] = y
 
             data["signal"] = self.generate_signals(data)
 
@@ -405,6 +407,21 @@ class Strategy():
                     avg_profit = sum(day_profits) / len(day_profits)
                     net_profits.append(avg_profit)
                     print(f"Iteration {x_num+1}/{n_iter}: Avg Profit = {avg_profit}")
+
+        elif not self.is_ml:
+            for x_num in range(n_iter):
+                results = process_map(self._permutation_test_single, file_names, max_workers=workers, desc="Processing", chunksize=chunksize)
+                # Unpack results from processes
+                day_profits, day_trades, day_num_profit, day_num_loss = zip(*results)
+                
+                # Convert to lists for consistency with original code
+                day_profits = list(day_profits)
+                day_trades = list(day_trades)
+                day_num_profit = list(day_num_profit)
+                day_num_loss = list(day_num_loss)
+                avg_profit = sum(day_profits) / len(day_profits)
+                net_profits.append(avg_profit)
+                print(f"Iteration {x_num+1}/{n_iter}: Avg Profit = {avg_profit}")
 
         if len(net_profits) < 2:
             print("Not enough data points for a meaningful plot.")
