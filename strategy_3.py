@@ -83,8 +83,7 @@ class Strategy_1(Strategy):
 
 
 if __name__ == "__main__":
-    strategy_2 = Strategy_1(train_data_directory="train_data", test_data_directory="test_data", sl=-5, day_sl=-20, framework="sklearn")
+    strategy_2 = Strategy_1(train_data_directory="train_data", test_data_directory="test_data", sl=-5, day_sl=-20, framework="nil", is_ml=False)
     strategy_2.prepare_data_train(workers=10)
-    strategy_2.train()
     strategy_2.test()
     strategy_2.walkforward_permutation_test(n_iter=100)

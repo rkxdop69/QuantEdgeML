@@ -320,10 +320,11 @@ class Strategy():
             data.dropna(inplace=True, axis=0)
             data.reset_index(inplace=True, drop=True)
 
-            y = model.predict(data.loc[:, feature_columns])
             if (self.framework == "sklearn"):
+                y = model.predict(data.loc[:, feature_columns])
                 data['target'] = y
             elif (self.framework == "tf"):
+                y = model.predict(data.loc[:, feature_columns], verbose=0)
                 if(y.shape[0] >= 2):
                     data['target'] = np.argmax(y, axis=1)
                 else:
