@@ -45,4 +45,4 @@ This software is for research and educational purposes only. Use at your own ris
 Pull requests and issues are welcome! Please open an issue to discuss major changes first.
 
 ## Contact
-For questions or collaboration, open an issue or contact the repo owner via GitHub.
+For questions or collaboration, open an issue or contact the repo owner via GitHub. You can also email me at rkxdop69@gmail.com
